@@ -245,7 +245,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         PermitData calldata permit,
         SwapQuote calldata quote
-    ) external returns (uint256 amt) {
+    ) external payable returns (uint256 amt) {
         amt = _swapSenseToken(adapter, maturity, ptBal, minAccepted, 0, receiver, permit, quote);
     }
 
@@ -268,7 +268,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         PermitData calldata permit,
         SwapQuote calldata quote
-    ) external returns (uint256 amt) {
+    ) external payable returns (uint256 amt) {
         amt = _swapSenseToken(adapter, maturity, ytBal, minAccepted, 1, receiver, permit, quote);
     }
 
@@ -378,7 +378,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         PermitData calldata permit,
         SwapQuote calldata quote
-    ) external returns (uint256 amt, uint256 ptBal) {
+    ) external payable returns (uint256 amt, uint256 ptBal) {
         (amt, ptBal) = _removeLiquidity(
             adapter,
             maturity,
@@ -413,7 +413,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         PermitData calldata permit,
         SwapQuote calldata quote
-    ) external returns (uint256 uBal) {
+    ) external payable returns (uint256 uBal) {
         if (address(quote.sellToken) != ETH) _transferFrom(permit, address(quote.sellToken), amt);
         uBal = divider.issue(adapter, maturity, _toTarget(adapter, amt, quote));
         ERC20(divider.pt(adapter, maturity)).transfer(receiver, uBal); // Send PTs to the receiver
@@ -437,7 +437,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         PermitBatchData calldata permit,
         SwapQuote calldata quote
-    ) external returns (uint256 amt) {
+    ) external payable returns (uint256 amt) {
         IPermit2.SignatureTransferDetails[] memory sigs = new IPermit2.SignatureTransferDetails[](2);
         sigs[0] = IPermit2.SignatureTransferDetails({ to: address(this), requestedAmount: uBal });
         sigs[1] = IPermit2.SignatureTransferDetails({ to: address(this), requestedAmount: uBal });
