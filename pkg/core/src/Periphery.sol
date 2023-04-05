@@ -139,8 +139,15 @@ contract Periphery is Trust, IERC3156FlashBorrower {
             }
         }
 
-        // Refund any excess stake assets
+        // refund any excess stake assets
         ERC20(stake).safeTransfer(msg.sender, ERC20(stake).balanceOf(address(this)));
+
+        // refund any remaining quote.sellToken to receiver
+        _transfer(
+            quote.sellToken,
+            msg.sender,
+            address(quote.sellToken) == ETH ? address(this).balance : quote.sellToken.balanceOf(address(this))
+        );
 
         emit SeriesSponsored(adapter, maturity, msg.sender);
     }
@@ -185,7 +192,13 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         SwapQuote calldata quote
     ) external payable returns (uint256 ptBal) {
         if (address(quote.sellToken) != ETH) _transferFrom(permit, address(quote.sellToken), amt);
-        return _swapTargetForPTs(adapter, maturity, _toTarget(adapter, amt, quote), minAccepted, receiver);
+        ptBal = _swapTargetForPTs(adapter, maturity, _toTarget(adapter, amt, quote), minAccepted, receiver);
+        // refund any remaining quote.sellToken to receiver
+        _transfer(
+            quote.sellToken,
+            receiver,
+            address(quote.sellToken) == ETH ? address(this).balance : quote.sellToken.balanceOf(address(this))
+        );
     }
 
     /// @notice Swap to YTs of a particular series
@@ -224,6 +237,13 @@ contract Periphery is Trust, IERC3156FlashBorrower {
 
         ERC20(Adapter(adapter).target()).safeTransfer(receiver, targetBal);
         ERC20(divider.yt(adapter, maturity)).safeTransfer(receiver, ytBal);
+
+        // refund any remaining quote.sellToken to receiver
+        _transfer(
+            quote.sellToken,
+            receiver,
+            address(quote.sellToken) == ETH ? address(this).balance : quote.sellToken.balanceOf(address(this))
+        );
     }
 
     /// @notice Swap PTs of a particular series
@@ -303,10 +323,9 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         if (amt < minAccepted) revert Errors.UnexpectedSwapAmount();
         _transfer(quote.buyToken, receiver, amt);
 
-        // transfer any remaining underlying to receiver
+        // refund any remaining underlying to receiver
         ERC20 underlying = ERC20(Adapter(adapter).underlying());
-        uint256 remaining = underlying.balanceOf(address(this));
-        if (remaining > 0) underlying.safeTransfer(receiver, remaining);
+        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
     }
 
     /// @notice Adds liquidity providing any Token
@@ -352,6 +371,13 @@ contract Periphery is Trust, IERC3156FlashBorrower {
             receiver,
             permit
         );
+
+        // refund any remaining quote.sellToken to receiver
+        _transfer(
+            quote.sellToken,
+            receiver,
+            address(quote.sellToken) == ETH ? address(this).balance : quote.sellToken.balanceOf(address(this))
+        );
     }
 
     /// @notice Removes liquidity providing an amount of LP tokens and returns underlying
@@ -391,6 +417,10 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         );
         amt = _fromTarget(adapter, amt, quote);
         _transfer(quote.buyToken, receiver, amt);
+
+        // refund any remaining underlying to receiver
+        ERC20 underlying = ERC20(Adapter(adapter).underlying());
+        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
     }
 
     /* ========== UTILS ========== */
@@ -418,6 +448,12 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         uBal = divider.issue(adapter, maturity, _toTarget(adapter, amt, quote));
         ERC20(divider.pt(adapter, maturity)).transfer(receiver, uBal); // Send PTs to the receiver
         ERC20(divider.yt(adapter, maturity)).transfer(receiver, uBal); // Send YT to the receiver
+        // refund any remaining quote.sellToken to receiver
+        _transfer(
+            quote.sellToken,
+            receiver,
+            address(quote.sellToken) == ETH ? address(this).balance : quote.sellToken.balanceOf(address(this))
+        );
     }
 
     /// @notice Reconstitute Target by burning PT and YT
@@ -446,6 +482,10 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         permit2.permitTransferFrom(permit.msg, sigs, msg.sender, permit.sig);
         amt = _fromTarget(adapter, divider.combine(adapter, maturity, uBal), quote);
         _transfer(quote.buyToken, receiver, amt);
+
+        // refund any remaining underlying to receiver
+        ERC20 underlying = ERC20(Adapter(adapter).underlying());
+        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
     }
 
     /* ========== ADMIN ========== */
@@ -1010,7 +1050,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         address receiver,
         uint256 amt
     ) internal {
-        address(token) == ETH ? payable(receiver).transfer(amt) : token.safeTransfer(receiver, amt);
+        if (amt > 0) address(token) == ETH ? payable(receiver).transfer(amt) : token.safeTransfer(receiver, amt);
     }
 
     /// @notice From: https://github.com/balancer-labs/balancer-examples/blob/master/packages/liquidity-provision/contracts/LiquidityProvider.sol#L33
