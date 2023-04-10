@@ -324,8 +324,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         _transfer(quote.buyToken, receiver, amt);
 
         // refund any remaining underlying to receiver
-        ERC20 underlying = ERC20(Adapter(adapter).underlying());
-        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
+        _transfer(quote.sellToken, receiver, quote.sellToken.balanceOf(address(this)));
     }
 
     /// @notice Adds liquidity providing any Token
@@ -419,8 +418,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         _transfer(quote.buyToken, receiver, amt);
 
         // refund any remaining underlying to receiver
-        ERC20 underlying = ERC20(Adapter(adapter).underlying());
-        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
+        _transfer(quote.sellToken, receiver, quote.sellToken.balanceOf(address(this)));
     }
 
     /* ========== UTILS ========== */
@@ -484,8 +482,7 @@ contract Periphery is Trust, IERC3156FlashBorrower {
         _transfer(quote.buyToken, receiver, amt);
 
         // refund any remaining underlying to receiver
-        ERC20 underlying = ERC20(Adapter(adapter).underlying());
-        _transfer(underlying, receiver, underlying.balanceOf(address(this)));
+        _transfer(quote.sellToken, receiver, quote.sellToken.balanceOf(address(this)));
     }
 
     /* ========== ADMIN ========== */
